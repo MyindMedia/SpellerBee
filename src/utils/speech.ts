@@ -50,6 +50,8 @@ export async function speak(text: string, opts?: { rate?: number }) {
     const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
     let url: string;
 
+    console.log("Checking ElevenLabs API Key:", apiKey ? "Found (Client-side)" : "Missing (Falling back to backend)");
+
     if (apiKey) {
         console.log("Using Client-Side ElevenLabs API");
         url = await generateAudioClientSide(text, apiKey);
