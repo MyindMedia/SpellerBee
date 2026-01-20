@@ -2,7 +2,8 @@
 import { anyApi } from "convex/server";
 import { ConvexHttpClient } from "convex/browser";
 
-const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL);
+const convexUrl = import.meta.env.VITE_CONVEX_URL;
+const convex = convexUrl ? new ConvexHttpClient(convexUrl) : null;
 const AUDIO_CACHE = new Map<string, string>();
 
 async function generateAudioClientSide(text: string, apiKey: string) {
@@ -52,11 +53,13 @@ export async function speak(text: string, opts?: { rate?: number }) {
     if (apiKey) {
         console.log("Using Client-Side ElevenLabs API");
         url = await generateAudioClientSide(text, apiKey);
-    } else {
+    } else if (convex) {
         console.log("Using Backend ElevenLabs Action");
         const base64 = await convex.action(anyApi.eleven.generateAudio, { text });
         if (!base64) throw new Error("No audio returned");
         url = `data:audio/mp3;base64,${base64}`;
+    } else {
+        throw new Error("No TTS configuration found");
     }
     
     // Cache it
