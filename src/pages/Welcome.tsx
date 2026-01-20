@@ -22,13 +22,24 @@ export default function Welcome() {
     });
 
     setTimeout(() => {
+      // If tutorial seen, skip it? Maybe force it for new users.
       navigate("/tutorial");
     }, 1000);
+  };
+
+  const handleBack = () => {
+    navigate("/");
   };
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-b from-[#FFF7CC] via-white to-white px-4">
       <div className="w-full max-w-md text-center">
+        <button 
+            onClick={handleBack}
+            className="mb-4 text-sm font-bold text-zinc-400 hover:text-zinc-600"
+        >
+            ← Back
+        </button>
         <div className="mb-6 flex justify-center">
           <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[#FFD700] shadow-xl">
             <span className="text-5xl">🐝</span>

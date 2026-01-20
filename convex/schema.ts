@@ -7,9 +7,22 @@ export default defineSchema({
     level: v.string(),
     definition: v.optional(v.string()),
     sentence: v.optional(v.string()),
+    creatorId: v.optional(v.string()), // null = system, or parentId
   })
     .index("by_level", ["level"])
-    .index("by_level_word", ["level", "word"]),
+    .index("by_level_word", ["level", "word"])
+    .index("by_creator", ["creatorId"]),
+
+  parents: defineTable({
+    username: v.string(),
+    pin: v.string(), // Simple 4-digit pin or password
+  }).index("by_username", ["username"]),
+
+  students: defineTable({
+    name: v.string(),
+    parentId: v.id("parents"),
+    pin: v.optional(v.string()),
+  }).index("by_parent", ["parentId"]),
 
   progress: defineTable({
     userId: v.optional(v.string()), // e.g. "Sienna"
