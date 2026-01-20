@@ -30,7 +30,7 @@ export default function Home() {
   const childName = useAppStore((state) => state.childName);
   const navigate = useNavigate();
 
-  const itemsRaw = useQuery(anyApi.myFunctions.getStudyList, { level });
+  const itemsRaw = useQuery(anyApi.myFunctions.getStudyList, { level, userId: childName || "anonymous" });
   const items = useMemo(() => (itemsRaw ?? []) as StudyItem[], [itemsRaw]);
 
   const remainingCount = itemsRaw ? items.length : 0;
@@ -51,7 +51,7 @@ export default function Home() {
   }, [currentId, items]);
 
   const updateProgress = useMutation(anyApi.myFunctions.updateProgress);
-  const masteredCount = useQuery(anyApi.myFunctions.getMasteredCount, { level }) ?? 0;
+  const masteredCount = useQuery(anyApi.myFunctions.getMasteredCount, { level, userId: childName || "anonymous" }) ?? 0;
 
   const header = (
     <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-5">
@@ -123,12 +123,12 @@ export default function Home() {
               });
             }}
             onMarkTrouble={async () => {
-              await updateProgress({ wordId: current._id, status: "trouble" });
+              await updateProgress({ wordId: current._id, status: "trouble", userId: childName || "anonymous" });
             }}
             onMarkMastered={async () => {
               const next = pickNextId(items, current._id);
               setCurrentId(next);
-              await updateProgress({ wordId: current._id, status: "mastered" });
+              await updateProgress({ wordId: current._id, status: "mastered", userId: childName || "anonymous" });
             }}
             onSkip={() => {
               setCurrentId(pickNextId(items, current._id));

@@ -11,6 +11,7 @@ type WordDoc = {
 
 type ProgressDoc = {
   _id: string;
+  userId: string;
   wordId: string;
   status?: string;
   attempts?: number;
@@ -34,13 +35,18 @@ function statusRank(status: ProgressStatus) {
 }
 
 export const getStudyList = queryGeneric(
-  async (ctx, args: { level: string }) => {
+  async (ctx, args: { level: string; userId: string }) => {
     const words = (await ctx.db
       .query("words")
       .withIndex("by_level", (q) => q.eq("level", args.level))
       .collect()) as WordDoc[];
 
-    const progress = (await ctx.db.query("progress").collect()) as ProgressDoc[];
+    // Filter progress by userId
+    const progress = (await ctx.db
+      .query("progress")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect()) as ProgressDoc[];
+
     const progressByWordId = new Map<string, ProgressDoc>();
     for (const p of progress) progressByWordId.set(p.wordId, p);
 
@@ -77,26 +83,52 @@ export const getStudyList = queryGeneric(
   },
 );
 
-export const getMasteredCount = queryGeneric(async (ctx) => {
-  const mastered = await ctx.db
-    .query("progress")
-    .filter((q) => q.eq(q.field("status"), "mastered"))
-    .collect();
-  return mastered.length;
+export const getMasteredCount = queryGeneric(async (ctx, args: { level: string; userId: string }) => {
+    // We need to count mastered words for a specific user in a specific level
+    // Since progress doesn't store level directly, we have to join or filter
+    
+    // 1. Get all mastered progress for this user
+    const userMastered = await ctx.db
+        .query("progress")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .filter((q) => q.eq(q.field("status"), "mastered"))
+        .collect();
+        
+    if (userMastered.length === 0) return 0;
+
+    // 2. Get words for this level
+    // This is slightly inefficient but safe for small datasets (kids vocab)
+    const levelWords = await ctx.db
+        .query("words")
+        .withIndex("by_level", (q) => q.eq("level", args.level))
+        .collect();
+        
+    const levelWordIds = new Set(levelWords.map(w => w._id));
+
+    // 3. Intersect
+    let count = 0;
+    for (const p of userMastered) {
+        if (levelWordIds.has(p.wordId)) {
+            count++;
+        }
+    }
+
+    return count;
 });
 
 
 export const updateProgress = mutationGeneric(
-  async (ctx, args: { wordId: string; status: "trouble" | "mastered" }) => {
+  async (ctx, args: { wordId: string; status: "trouble" | "mastered"; userId: string }) => {
     const now = Date.now();
     const existing = await ctx.db
       .query("progress")
-      .withIndex("by_wordId", (q) => q.eq("wordId", args.wordId))
+      .withIndex("by_user_word", (q) => q.eq("userId", args.userId).eq("wordId", args.wordId))
       .first();
 
     if (!existing) {
       const attempts = args.status === "trouble" ? 1 : 0;
       await ctx.db.insert("progress", {
+        userId: args.userId,
         wordId: args.wordId,
         status: args.status,
         attempts,
@@ -128,12 +160,7 @@ export const seedWords = mutationGeneric(
   ) => {
     let inserted = 0;
     let skipped = 0;
-
-    // Use a loop to avoid hitting limits, but ideally we should batch read first.
-    // However, since we are seeding level by level, let's just optimize the read.
-    // Reading one by one inside a loop is bad practice in Convex (N+1 queries).
     
-    // Better approach: Read ALL words for the target levels first, then compare in memory.
     const levelsToSeed = new Set(args.words.map(w => w.level));
     const existingWordsMap = new Map<string, WordDoc>();
 
@@ -154,7 +181,6 @@ export const seedWords = mutationGeneric(
 
       if (existing) {
         if (w.sentence && !existing.sentence) {
-             // Cast to any to bypass ID type check for now, or import Id type
              await ctx.db.patch(existing._id as any, { sentence: w.sentence });
              inserted += 1;
              continue;

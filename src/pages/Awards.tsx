@@ -19,9 +19,9 @@ export default function Awards() {
   // For now, let's just re-use the StickerChart but make it look grander.
   // Since StickerChart takes a count, we need to pass the current level's count or a global count.
   // Let's fetch counts for all levels individually
-  const count1 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "One Bee" }) ?? 0;
-  const count2 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "Two Bee" }) ?? 0;
-  const count3 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "Three Bee" }) ?? 0;
+  const count1 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "One Bee", userId: childName || "anonymous" }) ?? 0;
+  const count2 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "Two Bee", userId: childName || "anonymous" }) ?? 0;
+  const count3 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "Three Bee", userId: childName || "anonymous" }) ?? 0;
   
   const totalMastered = count1 + count2 + count3;
 
