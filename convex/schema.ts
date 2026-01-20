@@ -12,7 +12,7 @@ export default defineSchema({
     .index("by_level_word", ["level", "word"]),
 
   progress: defineTable({
-    userId: v.string(), // e.g. "Sienna"
+    userId: v.optional(v.string()), // e.g. "Sienna"
     wordId: v.id("words"),
     status: v.string(),
     attempts: v.number(),
