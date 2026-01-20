@@ -2,15 +2,16 @@ import confetti from "canvas-confetti";
 import { anyApi } from "convex/server";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminSeedPanel from "@/components/AdminSeedPanel";
 import LevelSelect from "@/components/LevelSelect";
 import SpellingCard, { type StudyItem } from "@/components/SpellingCard";
 import { useAdminEnabled } from "@/hooks/useAdminEnabled";
 import type { Level } from "@/data/wordLists";
-
+import { useAppStore } from "@/store/useAppStore";
 import StickerChart from "@/components/StickerChart";
-
 import { useTTS } from "@/hooks/useTTS";
+import { Trophy } from "lucide-react";
 
 function pickNextId(items: StudyItem[], currentId: string | null) {
   if (items.length === 0) return null;
@@ -26,6 +27,8 @@ export default function Home() {
   const [ttsError, setTtsError] = useState<string | null>(null);
   const admin = useAdminEnabled();
   const { speak } = useTTS();
+  const childName = useAppStore((state) => state.childName);
+  const navigate = useNavigate();
 
   const itemsRaw = useQuery(anyApi.myFunctions.getStudyList, { level });
   const items = useMemo(() => (itemsRaw ?? []) as StudyItem[], [itemsRaw]);
@@ -54,22 +57,27 @@ export default function Home() {
     <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-5">
       <div>
         <div className="text-xl font-black tracking-tight text-zinc-900">
-          Sienna Bee
+          Speller Bee 🐝
         </div>
         <div className="text-sm font-medium text-zinc-600">
-          Spelling practice with speaker + mastery
+          Hi, <span className="font-bold text-amber-600">{childName}</span>! Let's spell!
         </div>
       </div>
 
       <div className="flex items-center gap-3">
-         <div className="flex flex-col items-end mr-2">
-            <span className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Honey Pot</span>
-            <span className="text-lg font-black text-amber-500 tabular-nums leading-none">
-                {masteredCount} 🍯
+        <button 
+            onClick={() => navigate("/awards")}
+            className="flex flex-col items-end mr-2 hover:opacity-80 transition"
+        >
+            <span className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Awards</span>
+            <span className="flex items-center gap-1 text-lg font-black text-amber-500 tabular-nums leading-none">
+                <Trophy className="w-4 h-4" />
+                {masteredCount}
             </span>
-         </div>
+        </button>
         <LevelSelect value={level} onChange={setLevel} />
-        <AdminSeedPanel enabled={admin.enabled} onDisable={admin.disable} />
+        {/* Only show Admin panel if enabled via URL previously */}
+        {admin.enabled && <AdminSeedPanel enabled={admin.enabled} onDisable={admin.disable} />}
       </div>
     </div>
   );
@@ -77,8 +85,8 @@ export default function Home() {
   useEffect(() => {
     // Only greet once per session or level change if desired
     // For now, let's just greet on mount
-    void speak("Welcome back, Sienna! Let's get spelling!");
-  }, []); // Empty dependency array = run once on mount
+    void speak(`Welcome back, ${childName}! Let's get spelling!`);
+  }, [childName]); 
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-[#FFF7CC] via-white to-white">
@@ -137,9 +145,12 @@ export default function Home() {
           </div>
         )}
 
-        <div className="w-full max-w-xl text-center text-xs font-medium text-zinc-500">
-          Developer seeding: add <span className="font-mono">?admin=1</span> to the URL.
-        </div>
+        {/* Hiding the developer hint for kids version, unless admin enabled */}
+        {admin.enabled && (
+             <div className="w-full max-w-xl text-center text-xs font-medium text-zinc-500">
+                Developer seeding: add <span className="font-mono">?admin=1</span> to the URL.
+            </div>
+        )}
         
         <StickerChart count={masteredCount} />
       </div>
