@@ -122,7 +122,7 @@ export const updateProgress = mutationGeneric(
     const now = Date.now();
     const existing = await ctx.db
       .query("progress")
-      .withIndex("by_user_word", (q) => q.eq("userId", args.userId).eq("wordId", args.wordId))
+      .withIndex("by_user_word", (q) => (q.eq("userId", args.userId) as any).eq("wordId", args.wordId as any))
       .first();
 
     if (!existing) {
