@@ -1,7 +1,7 @@
 "use node";
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import pdf from "pdf-parse";
+import * as pdf from "pdf-parse";
 
 export const extractWordsFromPdf = action({
   args: { fileData: v.string() }, // Base64 encoded PDF
