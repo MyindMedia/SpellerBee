@@ -13,12 +13,12 @@ const convex = new ConvexReactClient(
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
-  console.error("Missing Publishable Key. Please set VITE_CLERK_PUBLISHABLE_KEY in your .env.local");
+  throw new Error("Missing Clerk Publishable Key");
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY || "pk_test_placeholder"}>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <App />
       </ConvexProviderWithClerk>
