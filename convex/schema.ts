@@ -13,14 +13,11 @@ export default defineSchema({
     .index("by_level_word", ["level", "word"])
     .index("by_creator", ["creatorId"]),
 
-  parents: defineTable({
-    username: v.string(),
-    pin: v.string(), // Simple 4-digit pin or password
-  }).index("by_username", ["username"]),
-
+  // parents: defineTable({ ... }) - Removed, using Clerk
+  
   students: defineTable({
     name: v.string(),
-    parentId: v.id("parents"),
+    parentId: v.string(), // Clerk User ID
     pin: v.optional(v.string()),
   }).index("by_parent", ["parentId"]),
 

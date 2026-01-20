@@ -1,59 +1,31 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// === Parent Auth ===
-
-export const createParent = mutation({
-  args: { username: v.string(), pin: v.string() },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("parents")
-      .withIndex("by_username", (q) => q.eq("username", args.username))
-      .first();
-
-    if (existing) throw new Error("Username taken");
-
-    return await ctx.db.insert("parents", {
-      username: args.username,
-      pin: args.pin,
-    });
-  },
-});
-
-export const loginParent = query({
-  args: { username: v.string(), pin: v.string() },
-  handler: async (ctx, args) => {
-    const parent = await ctx.db
-      .query("parents")
-      .withIndex("by_username", (q) => q.eq("username", args.username))
-      .first();
-
-    if (!parent || parent.pin !== args.pin) {
-      return null;
-    }
-    return parent;
-  },
-});
-
 // === Student Management ===
 
 export const createStudent = mutation({
-  args: { name: v.string(), parentId: v.id("parents"), pin: v.optional(v.string()) },
+  args: { name: v.string(), pin: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
     return await ctx.db.insert("students", {
       name: args.name,
-      parentId: args.parentId,
+      parentId: identity.subject, // Clerk ID
       pin: args.pin,
     });
   },
 });
 
 export const getStudents = query({
-  args: { parentId: v.id("parents") },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
     return await ctx.db
       .query("students")
-      .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
+      .withIndex("by_parent", (q) => q.eq("parentId", identity.subject))
       .collect();
   },
 });
@@ -65,14 +37,17 @@ export const addCustomWord = mutation({
     word: v.string(),
     level: v.string(), // Can be "Custom" or specific level
     sentence: v.optional(v.string()),
-    creatorId: v.string(), // parentId
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const creatorId = identity.subject;
+
     // Check if exists for this creator
     const existing = await ctx.db
         .query("words")
         .withIndex("by_level_word", (q) => q.eq("level", args.level).eq("word", args.word))
-        .filter((q) => q.eq(q.field("creatorId"), args.creatorId))
+        .filter((q) => q.eq(q.field("creatorId"), creatorId))
         .first();
     
     if (existing) return existing._id;
@@ -81,17 +56,20 @@ export const addCustomWord = mutation({
       word: args.word,
       level: args.level,
       sentence: args.sentence,
-      creatorId: args.creatorId,
+      creatorId: creatorId,
     });
   },
 });
 
 export const getParentWords = query({
-  args: { parentId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+     const identity = await ctx.auth.getUserIdentity();
+     if (!identity) return [];
+
      return await ctx.db
         .query("words")
-        .withIndex("by_creator", (q) => q.eq("creatorId", args.parentId))
+        .withIndex("by_creator", (q) => q.eq("creatorId", identity.subject))
         .collect();
   }
 });

@@ -1,24 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppStore } from "@/store/useAppStore";
 import { anyApi } from "convex/server";
 import { useMutation, useQuery, useAction } from "convex/react";
-import { Plus, Users, BookOpen, Upload, LogOut } from "lucide-react";
+import { Plus, Upload, LogOut } from "lucide-react";
+import { useClerk, useUser } from "@clerk/clerk-react";
 
 export default function ParentDashboard() {
   const navigate = useNavigate();
-  const parentId = useAppStore((state) => state.parentId);
-  const setParentId = useAppStore((state) => state.setParentId);
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
 
-  // Redirect if not logged in
-  if (!parentId) {
-    // Ideally this should be a useEffect, but return null/navigate works too
-    // navigate("/parent/login");
-    // return null;
-    // Better to handle in useEffect
-  }
-
-  const students = useQuery(anyApi.parent.getStudents, parentId ? { parentId: parentId as any } : "skip");
+  const students = useQuery(anyApi.parent.getStudents);
   const createStudent = useMutation(anyApi.parent.createStudent);
   const addCustomWord = useMutation(anyApi.parent.addCustomWord);
   const extractWordsFromPdf = useAction(anyApi.pdf.extractWordsFromPdf);
@@ -31,26 +23,32 @@ export default function ParentDashboard() {
   const [newWord, setNewWord] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  if (!isLoaded) return null;
+  if (!user) {
+      // If we are here and not logged in, redirect
+      // (Though useEffect is better for navigation, this prevents render flicker)
+      setTimeout(() => navigate("/parent/login"), 0);
+      return null;
+  }
+
   const handleLogout = () => {
-    setParentId(null);
-    navigate("/");
+    signOut(() => navigate("/"));
   };
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStudentName.trim() || !parentId) return;
-    await createStudent({ name: newStudentName, parentId: parentId as any });
+    if (!newStudentName.trim()) return;
+    await createStudent({ name: newStudentName });
     setNewStudentName("");
     setShowAddStudent(false);
   };
 
   const handleAddWord = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWord.trim() || !parentId) return;
+    if (!newWord.trim()) return;
     await addCustomWord({ 
         word: newWord.toLowerCase(), 
-        level: "Custom", 
-        creatorId: parentId 
+        level: "Custom" 
     });
     setNewWord("");
     setShowAddWord(false);
@@ -58,7 +56,7 @@ export default function ParentDashboard() {
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !parentId) return;
+    if (!file) return;
 
     setUploading(true);
     try {
@@ -71,8 +69,7 @@ export default function ParentDashboard() {
             for (const word of words) {
                 await addCustomWord({
                     word,
-                    level: "Custom",
-                    creatorId: parentId
+                    level: "Custom"
                 });
             }
             alert(`Added ${words.length} words from PDF!`);
@@ -86,14 +83,17 @@ export default function ParentDashboard() {
     }
   };
 
-  if (!parentId) return <div className="p-10 text-center">Please login first...</div>;
-
   return (
     <div className="min-h-dvh bg-zinc-50">
       {/* Header */}
       <header className="bg-white px-6 py-4 shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-xl font-black text-zinc-900">Parent Dashboard</h1>
+          <div className="flex items-center gap-3">
+             <h1 className="text-xl font-black text-zinc-900">Parent Dashboard</h1>
+             <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                {user.firstName || user.username || user.emailAddresses[0].emailAddress}
+             </span>
+          </div>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100"
@@ -213,7 +213,6 @@ export default function ParentDashboard() {
                 <p className="text-sm text-zinc-500">
                     Custom words will appear in the "Custom" level for all your students.
                 </p>
-                {/* List words here if needed */}
             </div>
           </div>
         )}

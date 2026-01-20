@@ -3,10 +3,10 @@ import { persist } from 'zustand/middleware';
 
 interface AppState {
   childName: string;
-  parentId: string | null; // If logged in as parent
+  studentId: string | null;
   hasSeenTutorial: boolean;
   setChildName: (name: string) => void;
-  setParentId: (id: string | null) => void;
+  setStudentId: (id: string | null) => void;
   setHasSeenTutorial: (seen: boolean) => void;
 }
 
@@ -14,10 +14,10 @@ export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       childName: "",
-      parentId: null,
+      studentId: null,
       hasSeenTutorial: false,
       setChildName: (name) => set({ childName: name }),
-      setParentId: (id) => set({ parentId: id }),
+      setStudentId: (id) => set({ studentId: id }),
       setHasSeenTutorial: (seen) => set({ hasSeenTutorial: seen }),
     }),
     {

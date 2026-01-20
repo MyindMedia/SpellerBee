@@ -10,6 +10,7 @@
 
 import type * as eleven from "../eleven.js";
 import type * as myFunctions from "../myFunctions.js";
+import type * as parent from "../parent.js";
 
 import type {
   ApiFromModules,
@@ -20,6 +21,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   eleven: typeof eleven;
   myFunctions: typeof myFunctions;
+  parent: typeof parent;
 }>;
 
 /**

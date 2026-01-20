@@ -8,6 +8,8 @@ import { useQuery } from "convex/react";
 export default function Awards() {
   const navigate = useNavigate();
   const childName = useAppStore((state) => state.childName) || "Speller";
+  const studentId = useAppStore((state) => state.studentId);
+  const activeUserId = studentId || childName || "anonymous";
   
   // We need to fetch counts for all levels to show total progress
   const wordCounts = useQuery(anyApi.myFunctions.getWordCounts); // This might need update to get mastered count per level?
@@ -19,9 +21,9 @@ export default function Awards() {
   // For now, let's just re-use the StickerChart but make it look grander.
   // Since StickerChart takes a count, we need to pass the current level's count or a global count.
   // Let's fetch counts for all levels individually
-  const count1 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "One Bee", userId: childName || "anonymous" }) ?? 0;
-  const count2 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "Two Bee", userId: childName || "anonymous" }) ?? 0;
-  const count3 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "Three Bee", userId: childName || "anonymous" }) ?? 0;
+  const count1 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "One Bee", userId: activeUserId }) ?? 0;
+  const count2 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "Two Bee", userId: activeUserId }) ?? 0;
+  const count3 = useQuery(anyApi.myFunctions.getMasteredCount, { level: "Three Bee", userId: activeUserId }) ?? 0;
   
   const totalMastered = count1 + count2 + count3;
 
