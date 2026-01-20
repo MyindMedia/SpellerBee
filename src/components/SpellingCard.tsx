@@ -1,0 +1,361 @@
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Check,
+  RotateCcw,
+  SkipForward,
+  Volume2,
+  X,
+  Lightbulb,
+  Gamepad2,
+  Keyboard,
+  Mic,
+} from "lucide-react";
+import { isCorrectGuess } from "@/utils/spelling";
+import { useSound } from "@/hooks/useSound";
+import { useTTS } from "@/hooks/useTTS";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
+
+type StudyStatus = "new" | "trouble";
+
+export type StudyItem = {
+  _id: string;
+  word: string;
+  level: string;
+  sentence?: string;
+  status: StudyStatus;
+  attempts: number;
+};
+
+type ScrambleChar = {
+  id: number;
+  char: string;
+  used: boolean;
+};
+
+export default function SpellingCard(props: {
+  item: StudyItem;
+  remainingCount: number;
+  onSpeak: () => void;
+  onMarkTrouble: () => Promise<void> | void;
+  onMarkMastered: () => Promise<void> | void;
+  onSkip: () => void;
+  onCorrect: () => void;
+}) {
+  const [guess, setGuess] = useState("");
+  const [result, setResult] = useState<"idle" | "correct" | "incorrect">(
+    "idle",
+  );
+  const [showHint, setShowHint] = useState(false);
+  const [mode, setMode] = useState<"standard" | "scramble">("standard");
+  const [scrambleChars, setScrambleChars] = useState<ScrambleChar[]>([]);
+  const { playSuccess, playError, playConfetti } = useSound();
+  
+  const { speak, isPlaying: isSpeaking } = useTTS();
+  const { startRecording, stopRecording, isRecording, isProcessing } = useVoiceInput();
+
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const statusChip = useMemo(() => {
+    if (props.item.status === "trouble") {
+      return (
+        <span className="inline-flex items-center rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+          Trouble
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+        New
+      </span>
+    );
+  }, [props.item.status]);
+
+  // Reset state when word changes
+  useEffect(() => {
+    setGuess("");
+    setResult("idle");
+    setShowHint(false);
+    
+    // Prepare scramble chars
+    const chars = props.item.word.split("").map((c, i) => ({
+      id: i,
+      char: c,
+      used: false,
+    }));
+    // Shuffle
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    setScrambleChars(chars);
+
+    if (mode === "standard") {
+      inputRef.current?.focus();
+    }
+  }, [props.item._id, props.item.word, mode]);
+
+  async function submit() {
+    const correct = isCorrectGuess(guess, props.item.word);
+    if (correct) {
+      setResult("correct");
+      playSuccess();
+      props.onCorrect();
+      return;
+    }
+    setResult("incorrect");
+    playError();
+    await props.onMarkTrouble();
+  }
+
+  function handleScrambleClick(charId: number) {
+    if (result === "correct") return;
+    
+    setScrambleChars((prev) =>
+      prev.map((c) => (c.id === charId ? { ...c, used: true } : c)),
+    );
+    const char = scrambleChars.find((c) => c.id === charId)?.char || "";
+    setGuess((prev) => prev + char);
+    setResult("idle");
+  }
+
+  function handleScrambleBackspace() {
+    if (guess.length === 0 || result === "correct") return;
+    
+    const lastChar = guess.slice(-1);
+    setGuess((prev) => prev.slice(0, -1));
+    setResult("idle");
+
+    // Find a used char that matches and un-use it (just the last one added ideally, but simple matching works for now if duplicates exist, we need to be careful)
+    // Actually, to be precise, we should track the stack of IDs added.
+    // For simplicity, let's just find the *first* used char that matches the removed letter.
+    // Wait, tracking stack is better.
+    // Let's rely on the fact that we can just rebuild "used" based on "guess" if we didn't have duplicates, but we do.
+    // Re-implementation: Store `selectedIds` stack.
+  }
+  
+  // Better Scramble Logic:
+  // Instead of complex backspace, just a "Reset" button for scramble is easier for kids.
+  // Or, allow clicking the letter in the *answer* box to remove it.
+  // Let's go with "Clear" button resets everything.
+
+  const feedback =
+    result === "correct" ? (
+      <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-emerald-700 animate-bounce">
+        <Check className="h-4 w-4" />
+        Correct! 🎉
+      </div>
+    ) : result === "incorrect" ? (
+      <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-rose-700">
+        <X className="h-4 w-4" />
+        Try again.
+      </div>
+    ) : (
+      <div className="mt-3 text-sm text-zinc-600">
+        {mode === "standard" ? "Press Enter to check." : "Build the word!"}
+      </div>
+    );
+
+  return (
+    <div className="w-full max-w-xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Remaining: {props.remainingCount}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            {statusChip}
+            <span className="text-xs font-medium text-zinc-500">
+              Attempts: {props.item.attempts}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+           <button
+            type="button"
+            onClick={() => setMode(mode === "standard" ? "scramble" : "standard")}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:bg-zinc-50"
+            title={mode === "standard" ? "Switch to Scramble Game" : "Switch to Standard Mode"}
+          >
+            {mode === "standard" ? <Gamepad2 className="h-5 w-5" /> : <Keyboard className="h-5 w-5" />}
+          </button>
+          
+          <button
+            type="button"
+            onClick={props.onSpeak}
+            disabled={isSpeaking}
+            className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#FFD700] px-4 text-sm font-semibold text-zinc-900 shadow-sm transition hover:brightness-95 focus:outline-none focus:ring-4 focus:ring-[#FFD700]/30 disabled:opacity-50"
+          >
+            <Volume2 className={`h-4 w-4 ${isSpeaking ? "animate-pulse" : ""}`} />
+            Speak
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="mt-8">
+        
+        {/* Hint Section */}
+        {props.item.sentence && (
+            <div className="mb-6">
+                {!showHint ? (
+                    <button 
+                        onClick={() => setShowHint(true)}
+                        className="text-xs font-medium text-blue-600 flex items-center gap-1 hover:underline"
+                    >
+                        <Lightbulb className="w-3 h-3" /> Show Hint Sentence
+                    </button>
+                ) : (
+                    <div className="p-4 bg-blue-50 rounded-2xl text-blue-900 text-lg font-medium text-center">
+                        {props.item.sentence.replace("___", "_______")}
+                    </div>
+                )}
+            </div>
+        )}
+
+        {mode === "standard" ? (
+          <>
+            <label className="block text-sm font-semibold text-zinc-800">
+              Type the spelling
+            </label>
+            <div className="mt-2 flex items-center gap-3">
+                <div className="relative flex-1">
+                    <input
+                    ref={inputRef}
+                    value={guess}
+                    onChange={(e) => setGuess(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") void submit();
+                    }}
+                    className="h-14 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-xl text-zinc-900 shadow-sm outline-none transition focus:border-zinc-300 focus:ring-4 focus:ring-[#FFD700]/20 placeholder:text-zinc-300"
+                    placeholder={isRecording ? "Listening..." : isProcessing ? "Thinking..." : "Type here…"}
+                    autoComplete="off"
+                    spellCheck={false}
+                    disabled={result === "correct" || isRecording || isProcessing}
+                    />
+                </div>
+                
+                <button
+                    type="button"
+                    onMouseDown={() => void startRecording()}
+                    onMouseUp={async () => {
+                        const text = await stopRecording();
+                        if (text) {
+                            // Simple cleanup: remove punctuation and whitespace
+                            const clean = text.replace(/[^a-zA-Z]/g, "").toLowerCase();
+                            setGuess(clean);
+                        }
+                    }}
+                    onMouseLeave={() => {
+                        if (isRecording) void stopRecording();
+                    }}
+                    onTouchStart={() => void startRecording()}
+                    onTouchEnd={async () => {
+                        const text = await stopRecording();
+                        if (text) {
+                             const clean = text.replace(/[^a-zA-Z]/g, "").toLowerCase();
+                             setGuess(clean);
+                        }
+                    }}
+                    disabled={result === "correct" || isProcessing}
+                    className={`flex-none h-14 w-14 inline-flex items-center justify-center rounded-2xl transition-all shadow-sm border ${
+                        isRecording 
+                        ? "bg-rose-500 border-rose-600 text-white scale-105 shadow-md animate-pulse ring-4 ring-rose-200" 
+                        : "bg-white border-zinc-200 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300"
+                    }`}
+                    title="Hold to Speak"
+                >
+                    <Mic className="h-6 w-6" />
+                </button>
+            </div>
+          </>
+        ) : (
+            <div className="flex flex-col items-center">
+                <div className="h-16 w-full flex items-center justify-center gap-2 border-b-2 border-zinc-100 mb-6">
+                    {guess.split("").map((char, i) => (
+                        <span key={i} className="text-3xl font-bold text-zinc-800 animate-in fade-in zoom-in duration-200">
+                            {char}
+                        </span>
+                    ))}
+                    {guess.length === 0 && <span className="text-zinc-300 italic">Tap letters below</span>}
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-3">
+                    {scrambleChars.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => handleScrambleClick(item.id)}
+                            disabled={item.used || result === "correct"}
+                            className={`
+                                h-14 w-14 rounded-xl text-2xl font-bold shadow-sm transition-all
+                                ${item.used 
+                                    ? "bg-zinc-100 text-zinc-300 scale-90" 
+                                    : "bg-white border-2 border-[#FFD700] text-zinc-900 hover:-translate-y-1 hover:shadow-md active:scale-95"
+                                }
+                            `}
+                        >
+                            {item.char}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        <div className="h-8">{feedback}</div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        {result === "correct" ? (
+          <button
+            type="button"
+            onClick={() => {
+                void props.onMarkMastered();
+                playConfetti();
+            }}
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200"
+          >
+            <Check className="h-4 w-4" />
+            Mark Mastered
+          </button>
+        ) : (
+          <>
+            <button
+                type="button"
+                onClick={() => void submit()}
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-zinc-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus:outline-none focus:ring-4 focus:ring-zinc-200"
+            >
+                Check
+            </button>
+            <button
+                type="button"
+                onClick={() => {
+                setGuess("");
+                setResult("idle");
+                if (mode === "scramble") {
+                     setScrambleChars((prev) => prev.map(c => ({...c, used: false})));
+                } else {
+                    inputRef.current?.focus();
+                }
+                }}
+                className="inline-flex h-11 items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 focus:outline-none focus:ring-4 focus:ring-zinc-100"
+            >
+                <RotateCcw className="h-4 w-4" />
+                Clear
+            </button>
+          </>
+        )}
+
+        <button
+          type="button"
+          onClick={props.onSkip}
+          className="inline-flex h-11 items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 focus:outline-none focus:ring-4 focus:ring-zinc-100"
+        >
+          <SkipForward className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
