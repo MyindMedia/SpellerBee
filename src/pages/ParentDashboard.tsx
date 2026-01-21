@@ -66,10 +66,20 @@ export default function ParentDashboard() {
   const handleAddWord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newWord.trim()) return;
-    await addCustomWord({ 
-        word: newWord.toLowerCase(), 
-        level: "Custom" 
-    });
+    
+    // Split by comma or newline, trim, filter empty
+    const wordsToAdd = newWord
+        .split(/[\n,]+/)
+        .map(w => w.trim().toLowerCase())
+        .filter(w => w.length > 0);
+
+    for (const word of wordsToAdd) {
+        await addCustomWord({ 
+            word: word, 
+            level: "Custom" 
+        });
+    }
+
     setNewWord("");
     setShowAddWord(false);
   };
@@ -227,17 +237,19 @@ export default function ParentDashboard() {
 
             {showAddWord && (
               <form onSubmit={handleAddWord} className="mb-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Type a word..."
-                    className="flex-1 rounded-xl border border-zinc-200 px-4 py-2 outline-none focus:border-blue-500"
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-zinc-700">Enter words (separated by commas or new lines)</label>
+                  <textarea
+                    placeholder="cat, dog, elephant..."
+                    className="min-h-[100px] w-full rounded-xl border border-zinc-200 px-4 py-2 outline-none focus:border-blue-500"
                     value={newWord}
                     onChange={(e) => setNewWord(e.target.value)}
                     autoFocus
                   />
-                  <button type="submit" className="rounded-xl bg-blue-600 px-4 py-2 font-bold text-white">Add</button>
-                  <button type="button" onClick={() => setShowAddWord(false)} className="rounded-xl border border-zinc-200 px-4 py-2 font-bold text-zinc-600">Cancel</button>
+                  <div className="flex gap-2">
+                    <button type="submit" className="flex-1 rounded-xl bg-blue-600 px-4 py-2 font-bold text-white sm:flex-none">Add Words</button>
+                    <button type="button" onClick={() => setShowAddWord(false)} className="flex-1 rounded-xl border border-zinc-200 px-4 py-2 font-bold text-zinc-600 sm:flex-none">Cancel</button>
+                  </div>
                 </div>
               </form>
             )}
