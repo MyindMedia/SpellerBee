@@ -52,7 +52,9 @@ export default function ParentDashboard() {
         setShowAddStudent(false);
     } catch (err) {
         console.error("Failed to create student:", err);
-        setError("Failed to create student. Please try again.");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const msg = (err as any).message || "Unknown error";
+        setError(`Failed to create student: ${msg}`);
     }
   };
 
