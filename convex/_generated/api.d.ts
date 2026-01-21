@@ -12,6 +12,7 @@ import type * as eleven from "../eleven.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as parent from "../parent.js";
 import type * as pdf from "../pdf.js";
+import type * as settings from "../settings.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   myFunctions: typeof myFunctions;
   parent: typeof parent;
   pdf: typeof pdf;
+  settings: typeof settings;
 }>;
 
 /**
