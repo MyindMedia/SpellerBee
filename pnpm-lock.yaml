@@ -54,6 +54,9 @@ importers:
       '@types/node':
         specifier: ^22.15.30
         version: 22.19.7
+      '@types/pdf-parse':
+        specifier: ^1.1.5
+        version: 1.1.5
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.27
@@ -96,9 +99,6 @@ importers:
       vite:
         specifier: ^6.3.5
         version: 6.4.1(@types/node@22.19.7)(jiti@1.21.7)
-      vite-plugin-trae-solo-badge:
-        specifier: ^1.0.0
-        version: 1.0.0(vite@6.4.1(@types/node@22.19.7)(jiti@1.21.7))
       vite-tsconfig-paths:
         specifier: ^5.1.4
         version: 5.1.4(typescript@5.8.3)(vite@6.4.1(@types/node@22.19.7)(jiti@1.21.7))
@@ -962,6 +962,9 @@ packages:
 
   '@types/node@22.19.7':
     resolution: {integrity: sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw==}
+
+  '@types/pdf-parse@1.1.5':
+    resolution: {integrity: sha512-kBfrSXsloMnUJOKi25s3+hRmkycHfLK6A09eRGqF/N8BkQoPUmaCr+q8Cli5FnfohEz/rsv82zAiPz/LXtOGhA==}
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
@@ -2136,11 +2139,6 @@ packages:
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
 
-  vite-plugin-trae-solo-badge@1.0.0:
-    resolution: {integrity: sha512-vrNr4QmbcqqMeJPzHBqef70nqDzN6CQngFwuXTJMAgn3zMU4TWzvY0B3BRdjUjvg/BtvNJLlwu2cPKXTUjalHg==}
-    peerDependencies:
-      vite: '>=4.0.0'
-
   vite-tsconfig-paths@5.1.4:
     resolution: {integrity: sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w==}
     peerDependencies:
@@ -2908,6 +2906,10 @@ snapshots:
   '@types/node@22.19.7':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/pdf-parse@1.1.5':
+    dependencies:
+      '@types/node': 22.19.7
 
   '@types/prop-types@15.7.15': {}
 
@@ -4147,11 +4149,6 @@ snapshots:
       - sugarss
       - supports-color
       - terser
-
-  vite-plugin-trae-solo-badge@1.0.0(vite@6.4.1(@types/node@22.19.7)(jiti@1.21.7)):
-    dependencies:
-      tslib: 2.8.1
-      vite: 6.4.1(@types/node@22.19.7)(jiti@1.21.7)
 
   vite-tsconfig-paths@5.1.4(typescript@5.8.3)(vite@6.4.1(@types/node@22.19.7)(jiti@1.21.7)):
     dependencies:
