@@ -37,7 +37,7 @@ export default function Tutorial() {
       void speak(steps[step + 1].voice);
     } else {
       setHasSeenTutorial(true);
-      navigate("/");
+      navigate("/play");
     }
   };
 
