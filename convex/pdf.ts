@@ -2,11 +2,13 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require("pdf-parse");
+// const pdf = require("pdf-parse");
 
 export const extractWordsFromPdf = action({
   args: { fileData: v.string() }, // Base64 encoded PDF
-  handler: async (ctx, args) => {
+  handler: async () => {
+    throw new Error("PDF parsing temporarily disabled due to deployment issues");
+    /*
     try {
       const buffer = Buffer.from(args.fileData, "base64");
       const data = await pdf(buffer);
@@ -29,5 +31,6 @@ export const extractWordsFromPdf = action({
       console.error("PDF Parse Error:", e);
       throw new Error("Failed to parse PDF");
     }
+    */
   },
 });
