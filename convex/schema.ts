@@ -30,5 +30,9 @@ export default defineSchema({
   })
     .index("by_user_word", ["userId", "wordId"])
     .index("by_user", ["userId"]),
-});
 
+  user_settings: defineTable({
+    userId: v.string(), // Clerk ID
+    voiceId: v.string(),
+  }).index("by_user", ["userId"]),
+});

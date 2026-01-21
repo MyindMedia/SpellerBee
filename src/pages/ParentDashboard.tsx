@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { anyApi } from "convex/server";
 import { useMutation, useQuery, useAction } from "convex/react";
-import { Plus, Upload, LogOut } from "lucide-react";
+import { Plus, Upload, LogOut, Mic, Settings } from "lucide-react";
 import { useClerk, useUser } from "@clerk/clerk-react";
+import { api } from "../../convex/_generated/api";
+import { VOICES } from "@/data/voices";
 
 export default function ParentDashboard() {
   const navigate = useNavigate();
@@ -14,22 +16,27 @@ export default function ParentDashboard() {
   const createStudent = useMutation(anyApi.parent.createStudent);
   const addCustomWord = useMutation(anyApi.parent.addCustomWord);
   const extractWordsFromPdf = useAction(anyApi.pdf.extractWordsFromPdf);
+  
+  // Voice Settings
+  const userSettings = useQuery(api.settings.getSettings);
+  const updateVoice = useMutation(api.settings.updateVoice);
 
-  const [view, setView] = useState<"students" | "words">("students");
+  const [view, setView] = useState<"students" | "words" | "settings">("students");
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newStudentName, setNewStudentName] = useState("");
+  const [error, setError] = useState<string | null>(null);
   
   const [showAddWord, setShowAddWord] = useState(false);
   const [newWord, setNewWord] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  if (!isLoaded) return null;
-  if (!user) {
-      // If we are here and not logged in, redirect
-      // (Though useEffect is better for navigation, this prevents render flicker)
-      setTimeout(() => navigate("/parent/login"), 0);
-      return null;
-  }
+  useEffect(() => {
+    if (isLoaded && !user) {
+        navigate("/parent/login");
+    }
+  }, [isLoaded, user, navigate]);
+
+  if (!isLoaded || !user) return null;
 
   const handleLogout = () => {
     signOut(() => navigate("/"));
@@ -38,10 +45,21 @@ export default function ParentDashboard() {
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudentName.trim()) return;
-    await createStudent({ name: newStudentName });
-    setNewStudentName("");
-    setShowAddStudent(false);
+    setError(null);
+    try {
+        await createStudent({ name: newStudentName });
+        setNewStudentName("");
+        setShowAddStudent(false);
+    } catch (err) {
+        console.error("Failed to create student:", err);
+        setError("Failed to create student. Please try again.");
+    }
   };
+
+  const handleUpdateVoice = async (voiceId: string) => {
+      await updateVoice({ voiceId });
+  };
+
 
   const handleAddWord = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,10 +137,21 @@ export default function ParentDashboard() {
           >
             Custom Words
           </button>
+          <button
+            onClick={() => setView("settings")}
+            className={`pb-3 text-sm font-bold ${view === "settings" ? "border-b-2 border-blue-600 text-blue-600" : "text-zinc-500"}`}
+          >
+            Settings
+          </button>
         </div>
 
         {view === "students" ? (
           <div>
+            {error && (
+                <div className="mb-4 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600">
+                    {error}
+                </div>
+            )}
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg font-bold text-zinc-800">Your Students</h2>
               <button
@@ -136,7 +165,7 @@ export default function ParentDashboard() {
 
             {showAddStudent && (
               <form onSubmit={handleCreateStudent} className="mb-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200">
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
                     placeholder="Student Name"
@@ -145,8 +174,10 @@ export default function ParentDashboard() {
                     onChange={(e) => setNewStudentName(e.target.value)}
                     autoFocus
                   />
-                  <button type="submit" className="rounded-xl bg-blue-600 px-4 py-2 font-bold text-white">Save</button>
-                  <button type="button" onClick={() => setShowAddStudent(false)} className="rounded-xl border border-zinc-200 px-4 py-2 font-bold text-zinc-600">Cancel</button>
+                  <div className="flex gap-2">
+                    <button type="submit" className="flex-1 rounded-xl bg-blue-600 px-4 py-2 font-bold text-white sm:flex-none">Save</button>
+                    <button type="button" onClick={() => setShowAddStudent(false)} className="flex-1 rounded-xl border border-zinc-200 px-4 py-2 font-bold text-zinc-600 sm:flex-none">Cancel</button>
+                  </div>
                 </div>
               </form>
             )}
@@ -215,6 +246,34 @@ export default function ParentDashboard() {
                 </p>
             </div>
           </div>
+        )}
+        {view === "settings" && (
+            <div>
+                <h2 className="mb-6 text-lg font-bold text-zinc-800">Tutor Voice</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    {VOICES.map((voice) => (
+                        <button
+                            key={voice.id}
+                            onClick={() => handleUpdateVoice(voice.id)}
+                            className={`flex items-center justify-between rounded-2xl border p-4 transition ${
+                                userSettings?.voiceId === voice.id 
+                                ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600" 
+                                : "border-zinc-200 bg-white hover:border-blue-300 hover:bg-zinc-50"
+                            }`}
+                        >
+                            <div className="text-left">
+                                <p className="font-bold text-zinc-900">{voice.name}</p>
+                                <p className="text-sm text-zinc-500">{voice.description}</p>
+                            </div>
+                            {userSettings?.voiceId === voice.id && (
+                                <div className="rounded-full bg-blue-600 p-1 text-white">
+                                    <Mic className="h-4 w-4" />
+                                </div>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
         )}
       </main>
     </div>
