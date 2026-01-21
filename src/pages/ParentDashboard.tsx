@@ -69,10 +69,22 @@ export default function ParentDashboard() {
       setSelectedVoiceId(voiceId);
   };
 
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const handleApplySettings = async () => {
       if (selectedVoiceId) {
-          await updateVoice({ voiceId: selectedVoiceId });
-          alert("Settings saved!");
+          setIsSavingSettings(true);
+          try {
+              await updateVoice({ voiceId: selectedVoiceId });
+              setSaveSuccess(true);
+              setTimeout(() => setSaveSuccess(false), 2000);
+          } catch (e) {
+              console.error(e);
+              alert("Failed to save settings");
+          } finally {
+              setIsSavingSettings(false);
+          }
       }
   };
 
@@ -281,10 +293,12 @@ export default function ParentDashboard() {
                     <h2 className="text-lg font-bold text-zinc-800">Tutor Voice</h2>
                     <button 
                         onClick={handleApplySettings}
-                        disabled={selectedVoiceId === userSettings?.voiceId}
-                        className="rounded-xl bg-blue-600 px-6 py-2 font-bold text-white shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none"
+                        disabled={selectedVoiceId === userSettings?.voiceId || isSavingSettings}
+                        className={`rounded-xl px-6 py-2 font-bold text-white shadow-md transition-all disabled:opacity-50 disabled:shadow-none ${
+                            saveSuccess ? "bg-emerald-500 hover:bg-emerald-600" : "bg-blue-600 hover:bg-blue-700"
+                        }`}
                     >
-                        Apply Changes
+                        {isSavingSettings ? "Saving..." : saveSuccess ? "Saved!" : "Apply Changes"}
                     </button>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
