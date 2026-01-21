@@ -1,6 +1,7 @@
 "use node";
 import { action } from "./_generated/server";
 import { v } from "convex/values";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdf = require("pdf-parse");
 
 export const extractWordsFromPdf = action({

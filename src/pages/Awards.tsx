@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, Trophy } from "lucide-react";
+import { ArrowLeft, Trophy } from "lucide-react";
 import StickerChart from "@/components/StickerChart";
 import { useAppStore } from "@/store/useAppStore";
 import { anyApi } from "convex/server";
@@ -12,7 +12,6 @@ export default function Awards() {
   const activeUserId = studentId || childName || "anonymous";
   
   // We need to fetch counts for all levels to show total progress
-  const wordCounts = useQuery(anyApi.myFunctions.getWordCounts); // This might need update to get mastered count per level?
   // Currently getMasteredCount requires a level arg.
   // Let's just use the StickerChart component which expects a single count for now, 
   // or maybe we sum them up?

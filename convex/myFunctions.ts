@@ -122,6 +122,7 @@ export const updateProgress = mutationGeneric(
     const now = Date.now();
     const existing = await ctx.db
       .query("progress")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .withIndex("by_user_word", (q) => (q.eq("userId", args.userId) as any).eq("wordId", args.wordId as any))
       .first();
 
@@ -181,6 +182,7 @@ export const seedWords = mutationGeneric(
 
       if (existing) {
         if (w.sentence && !existing.sentence) {
+             // eslint-disable-next-line @typescript-eslint/no-explicit-any
              await ctx.db.patch(existing._id as any, { sentence: w.sentence });
              inserted += 1;
              continue;

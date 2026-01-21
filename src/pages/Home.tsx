@@ -88,7 +88,7 @@ export default function Home() {
     // Only greet once per session or level change if desired
     // For now, let's just greet on mount
     void speak(`Welcome back, ${childName}! Let's get spelling!`);
-  }, [childName]); 
+  }, [childName, speak]); 
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-[#FFF7CC] via-white to-white">

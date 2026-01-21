@@ -119,7 +119,7 @@ export default function SpellingCard(props: {
     if (mode === "standard") {
       inputRef.current?.focus();
     }
-  }, [props.item._id, props.item.word, mode]);
+  }, [props.item._id, props.item.word, mode, isRecording, stopRecording]);
 
   async function submit() {
     // If recording, stop it first

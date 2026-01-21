@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
@@ -20,6 +20,7 @@ export function useVoiceInput() {
   const listenAction = useAction(api.eleven.listen);
 
   // SpeechRecognition
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
 
   const startRecording = useCallback(async () => {
@@ -30,6 +31,7 @@ export function useVoiceInput() {
     // 1. Try Web Speech API (Real-time)
     if (isSpeechRecognitionSupported()) {
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             recognition.continuous = true; // Keep listening even if user pauses slightly
@@ -40,6 +42,7 @@ export function useVoiceInput() {
                 setIsRecording(true);
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             recognition.onerror = (event: any) => {
                 console.error("Speech recognition error", event.error);
                 setError(event.error);
@@ -50,6 +53,7 @@ export function useVoiceInput() {
                 setIsRecording(false);
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             recognition.onresult = (event: any) => {
                 let final = "";
                 let interim = "";

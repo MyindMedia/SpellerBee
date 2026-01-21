@@ -56,6 +56,7 @@ export const generateAudio = action({
       console.log("Audio generation successful, size:", buffer.length);
       return buffer.toString("base64");
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("ElevenLabs TTS Error:", error);
       throw new Error("Failed to generate speech");
@@ -82,10 +83,12 @@ export const listen = action({
       const transcription = await client.speechToText.convert({
         file: blob,
         model_id: "scribe_v2",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
       // The SDK response type might vary, checking documentation it returns an object with text.
       // We cast to any to avoid strict type checks if the SDK types are slightly off.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (transcription as any).text;
 
     } catch (error) {

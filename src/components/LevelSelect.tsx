@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { type Level } from "@/data/wordLists";
-import { Star, Check, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 const LEVEL_INFO: Record<Level, { title: string; desc: string; color: string }> = {
   "One Bee": {
