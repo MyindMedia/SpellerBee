@@ -62,7 +62,8 @@ export default function Welcome() {
         </p>
 
         <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl">
-          {user && students.length > 0 ? (
+          {user ? (
+             students.length > 0 ? (
              <div className="mb-6">
                 <p className="mb-4 text-lg font-bold text-zinc-800">Who is playing?</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -79,36 +80,32 @@ export default function Welcome() {
                         </button>
                     ))}
                 </div>
-                <div className="my-6 flex items-center gap-2">
-                    <div className="h-px flex-1 bg-zinc-200"></div>
-                    <span className="text-xs font-bold uppercase text-zinc-400">Or</span>
-                    <div className="h-px flex-1 bg-zinc-200"></div>
-                </div>
              </div>
-          ) : null}
-
-          <label className="mb-4 block text-lg font-bold text-zinc-800">
-            {user && students.length > 0 ? "Play as Guest" : "What is your name?"}
-          </label>
-          
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleStart(name)}
-            placeholder="Type your name..."
-            className="mb-6 w-full rounded-2xl border-2 border-zinc-200 bg-zinc-50 px-4 py-4 text-center text-xl font-bold text-zinc-900 placeholder:text-zinc-400 focus:border-[#FFD700] focus:outline-none focus:ring-4 focus:ring-[#FFD700]/20"
-          />
-
-          <button
-            onClick={() => handleStart(name)}
-            disabled={!name.trim()}
-            className="group relative flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FFD700] px-6 py-4 text-lg font-black text-zinc-900 shadow-[0_4px_0_0_#e6c200] transition active:translate-y-1 active:shadow-none disabled:opacity-50 disabled:active:translate-y-0 disabled:active:shadow-[0_4px_0_0_#e6c200]"
-          >
-            <Sparkles className="h-5 w-5 transition group-hover:rotate-12" />
-            Let's Go!
-            <ArrowRight className="h-5 w-5 transition group-hover:translate-x-1" />
-          </button>
+             ) : (
+                <div className="text-center">
+                    <p className="mb-4 text-lg font-bold text-zinc-800">No students found.</p>
+                    <p className="text-zinc-600 mb-6">Ask your parent to add you in the dashboard.</p>
+                    <button
+                        onClick={() => navigate("/parent/dashboard")}
+                        className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white shadow-md hover:bg-blue-700"
+                    >
+                        Go to Dashboard
+                    </button>
+                </div>
+             )
+          ) : (
+            <div className="text-center">
+                <p className="mb-4 text-lg font-medium text-zinc-600">
+                    Students must be added by a parent to play.
+                </p>
+                <button
+                    onClick={() => navigate("/parent/login")}
+                    className="w-full rounded-2xl bg-blue-600 px-6 py-4 text-lg font-bold text-white shadow-lg hover:bg-blue-700"
+                >
+                    Parent Login
+                </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
