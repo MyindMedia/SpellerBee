@@ -45,12 +45,7 @@ export default function ParentDashboard() {
   const updateVoice = useMutation(api.settings.updateVoice);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (userSettings?.voiceId) {
-        setSelectedVoiceId(userSettings.voiceId);
-    }
-  }, [userSettings]);
-
+  // Move these hooks up, before any conditional returns
   const [view, setView] = useState<"students" | "words" | "settings">("students");
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [newStudentName, setNewStudentName] = useState("");
@@ -59,6 +54,15 @@ export default function ParentDashboard() {
   const [showAddWord, setShowAddWord] = useState(false);
   const [newWord, setNewWord] = useState("");
   const [uploading, setUploading] = useState(false);
+  
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    if (userSettings?.voiceId) {
+        setSelectedVoiceId(userSettings.voiceId);
+    }
+  }, [userSettings]);
 
   useEffect(() => {
     if (isLoaded && !user) {
@@ -93,9 +97,6 @@ export default function ParentDashboard() {
   const handleUpdateVoice = (voiceId: string) => {
       setSelectedVoiceId(voiceId);
   };
-
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleApplySettings = async () => {
       if (selectedVoiceId) {
