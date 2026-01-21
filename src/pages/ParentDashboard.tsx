@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { anyApi } from "convex/server";
 import { useMutation, useQuery, useAction } from "convex/react";
-import { Plus, Upload, LogOut, Mic, Settings, Check } from "lucide-react";
+import { Plus, Upload, LogOut, Mic, Settings, Check, Gamepad2 } from "lucide-react";
 import { useClerk, useUser } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { VOICES } from "@/data/voices";
@@ -187,13 +187,22 @@ export default function ParentDashboard() {
                 Debug
              </button>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+                onClick={() => navigate("/welcome")}
+                className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-600 hover:bg-emerald-100"
+            >
+                <Gamepad2 className="h-4 w-4" />
+                Student Mode
+            </button>
+            <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100"
+            >
+                <LogOut className="h-4 w-4" />
+                Logout
+            </button>
+          </div>
         </div>
       </header>
 

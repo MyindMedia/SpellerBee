@@ -108,6 +108,14 @@ export default function Welcome() {
           )}
         </div>
       </div>
+
+      {/* Hidden Parent Dashboard Access */}
+      <button
+        onClick={() => navigate(user ? "/parent/dashboard" : "/parent/login")}
+        className="fixed bottom-4 left-4 rounded-lg p-2 text-xs font-bold text-zinc-300 opacity-50 hover:bg-zinc-100 hover:text-zinc-600 hover:opacity-100"
+      >
+        Parent Dashboard
+      </button>
     </div>
   );
 }
