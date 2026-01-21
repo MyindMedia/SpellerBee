@@ -46,7 +46,9 @@ export default function ParentDashboard() {
   if (!isLoaded || !user) return null;
 
   const handleLogout = () => {
-    signOut(() => navigate("/"));
+    // Navigate first, then sign out to avoid "Not authenticated" errors on the current page
+    navigate("/");
+    setTimeout(() => signOut(), 100);
   };
 
   const handleCreateStudent = async (e: React.FormEvent) => {
