@@ -3,6 +3,11 @@ import { type Level } from "@/data/wordLists";
 import { Check, X } from "lucide-react";
 
 const LEVEL_INFO: Record<Level, { title: string; desc: string; color: string }> = {
+  "Custom": {
+    title: "Custom List",
+    desc: "Words added by your parent!",
+    color: "bg-orange-100 text-orange-800",
+  },
   "One Bee": {
     title: "One Bee",
     desc: "Short 3-letter words. Perfect for warming up!",
@@ -54,6 +59,7 @@ export default function LevelSelect(props: {
           <option value="One Bee">One Bee</option>
           <option value="Two Bee">Two Bee</option>
           <option value="Three Bee">Three Bee</option>
+          <option value="Custom">Custom</option>
         </select>
       </div>
 

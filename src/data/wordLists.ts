@@ -4,9 +4,10 @@ export type WordItem = {
   sentence?: string;
 };
 
-export type Level = "One Bee" | "Two Bee" | "Three Bee";
+export type Level = "One Bee" | "Two Bee" | "Three Bee" | "Custom";
 
 export const WORD_LISTS: Record<Level, WordItem[]> = {
+  "Custom": [], // Handled by dynamic loading
   "One Bee": [
     { word: "tag", sentence: "The price ___ was yellow." },
     { word: "send", sentence: "I will ___ a letter to my friend." },

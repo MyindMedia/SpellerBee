@@ -37,7 +37,33 @@ export default function Home() {
   const voiceId = userSettings?.voiceId;
 
   const itemsRaw = useQuery(anyApi.myFunctions.getStudyList, { level, userId: activeUserId });
-  const items = useMemo(() => (itemsRaw ?? []) as StudyItem[], [itemsRaw]);
+  const items = useMemo(() => {
+      const list = (itemsRaw ?? []) as StudyItem[];
+      if (!list.length) return [];
+
+      // Group by status/priority to preserve learning order, but shuffle within groups
+      const trouble = list.filter(i => i.status === "trouble");
+      const newWords = list.filter(i => i.status === "new");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mastered = list.filter(i => (i.status as any) === "mastered");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const others = list.filter(i => i.status !== "trouble" && i.status !== "new" && (i.status as any) !== "mastered");
+
+      // Simple shuffle function
+      const shuffle = (array: StudyItem[]) => {
+          return array.sort(() => Math.random() - 0.5);
+      };
+
+      // Keep trouble words at top (but shuffled among themselves)
+      // Then new words (shuffled)
+      // Then others (shuffled)
+      return [
+          ...shuffle(trouble),
+          ...shuffle(newWords),
+          ...shuffle(others),
+          ...mastered // Mastered usually filtered out by backend but just in case
+      ];
+  }, [itemsRaw]);
 
   const remainingCount = itemsRaw ? items.length : 0;
 
@@ -82,16 +108,18 @@ export default function Home() {
             </span>
         </button>
         <LevelSelect value={level} onChange={setLevel} />
-        {/* Only show Admin panel if enabled via URL previously */}
-        {admin.enabled && <AdminSeedPanel enabled={admin.enabled} onDisable={admin.disable} />}
+        {/* Admin panel removed as requested */}
       </div>
     </div>
   );
 
   useEffect(() => {
+    if (!childName) return;
+    if (voiceId === undefined) return; // Wait for settings to load (can be null if not set, but undefined is loading)
+    
     // Only greet once per session or level change if desired
     // For now, let's just greet on mount
-    void speak(`Welcome back, ${childName}! Let's get spelling!`, { voiceId });
+    void speak(`Welcome back, ${childName}! Let's get spelling!`, { voiceId: voiceId || undefined });
   }, [childName, speak, voiceId]); 
 
   return (
@@ -152,12 +180,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Hiding the developer hint for kids version, unless admin enabled */}
-        {admin.enabled && (
-             <div className="w-full max-w-xl text-center text-xs font-medium text-zinc-500">
-                Developer seeding: add <span className="font-mono">?admin=1</span> to the URL.
-            </div>
-        )}
+        {/* Developer hint hidden */}
         
         <StickerChart count={masteredCount} />
       </div>
