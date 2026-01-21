@@ -29,6 +29,14 @@ export default function ParentDashboard() {
         const payload = JSON.parse(atob(parts[1]));
         console.log("Token Payload:", payload);
         alert(`Token Info:\nIssuer: ${payload.iss}\nAudience: ${payload.aud}\nTemplate: convex`);
+        
+        // Log the exact expected issuer
+        console.log("Expected Issuer:", "https://suitable-phoenix-68.clerk.accounts.dev");
+        
+        if (payload.iss !== "https://suitable-phoenix-68.clerk.accounts.dev") {
+             alert(`MISMATCH! Expected: https://suitable-phoenix-68.clerk.accounts.dev\nGot: ${payload.iss}`);
+        }
+        
     } catch (e) {
         console.error(e);
         alert("Error fetching token: " + e);
