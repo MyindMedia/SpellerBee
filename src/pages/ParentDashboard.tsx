@@ -10,7 +10,30 @@ import { VOICES } from "@/data/voices";
 export default function ParentDashboard() {
   const navigate = useNavigate();
   const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { signOut, session } = useClerk();
+  
+  // Debug Auth (Temporary)
+  const handleDebugAuth = async () => {
+    try {
+        const token = await session?.getToken({ template: "convex" });
+        if (!token) {
+            alert("No token generated! Check if template 'convex' exists in Clerk.");
+            return;
+        }
+        // Basic decode
+        const parts = token.split(".");
+        if (parts.length !== 3) {
+            alert("Invalid token format");
+            return;
+        }
+        const payload = JSON.parse(atob(parts[1]));
+        console.log("Token Payload:", payload);
+        alert(`Token Info:\nIssuer: ${payload.iss}\nAudience: ${payload.aud}\nTemplate: convex`);
+    } catch (e) {
+        console.error(e);
+        alert("Error fetching token: " + e);
+    }
+  };
 
   const students = useQuery(anyApi.parent.getStudents);
   const createStudent = useMutation(anyApi.parent.createStudent);
@@ -151,6 +174,9 @@ export default function ParentDashboard() {
              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
                 {user.firstName || user.username || user.emailAddresses[0].emailAddress}
              </span>
+             <button onClick={handleDebugAuth} className="text-[10px] text-zinc-300 hover:text-zinc-500">
+                Debug
+             </button>
           </div>
           <button 
             onClick={handleLogout}
