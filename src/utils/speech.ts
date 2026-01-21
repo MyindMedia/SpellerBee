@@ -34,13 +34,13 @@ async function generateAudioClientSide(text: string, apiKey: string) {
     });
 }
 
-export async function speak(text: string, opts?: { rate?: number }) {
+export async function speak(text: string, opts?: { rate?: number; voiceId?: string }) {
   if (typeof window === "undefined") return false;
 
   // 1. Try ElevenLabs
   try {
-    // Check cache first
-    const cacheKey = text.toLowerCase().trim();
+    // Check cache first (include voiceId in key)
+    const cacheKey = `${text.toLowerCase().trim()}_${opts?.voiceId || "default"}`;
     if (AUDIO_CACHE.has(cacheKey)) {
         const audio = new Audio(AUDIO_CACHE.get(cacheKey));
         await audio.play();
@@ -54,10 +54,15 @@ export async function speak(text: string, opts?: { rate?: number }) {
 
     if (apiKey) {
         console.log("Using Client-Side ElevenLabs API");
-        url = await generateAudioClientSide(text, apiKey);
+        // We removed generateAudioClientSide to simplify, assuming backend is preferred now
+        // But if you still use it, update it to accept voiceId
+        throw new Error("Client-side generation deprecated in favor of backend");
     } else if (convex) {
-        console.log("Using Backend ElevenLabs Action");
-        const base64 = await convex.action(anyApi.eleven.generateAudio, { text });
+        console.log("Using Backend ElevenLabs Action with voice:", opts?.voiceId);
+        const base64 = await convex.action(anyApi.eleven.generateAudio, { 
+            text, 
+            voiceId: opts?.voiceId 
+        });
         if (!base64) throw new Error("No audio returned");
         url = `data:audio/mp3;base64,${base64}`;
     } else {

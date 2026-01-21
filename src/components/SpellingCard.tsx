@@ -40,6 +40,7 @@ export default function SpellingCard(props: {
   onMarkMastered: () => Promise<void> | void;
   onSkip: () => void;
   onCorrect: () => void;
+  voiceId?: string; // Added voiceId prop
 }) {
   const [guess, setGuess] = useState("");
   const [result, setResult] = useState<"idle" | "correct" | "incorrect">(
@@ -68,7 +69,7 @@ export default function SpellingCard(props: {
   // Handle Auto-Listen Flow
   const handleSpeakAndListen = async () => {
     // 1. Speak
-    await speak(props.item.word);
+    await speak(props.item.word, { voiceId: props.voiceId });
     
     // 2. Start Listening immediately after
     // Only if not already correct and in standard mode

@@ -9,13 +9,13 @@ export function useTTS() {
   
   const speakAction = useAction(api.eleven.generateAudio);
 
-  const speak = useCallback(async (text: string) => {
+  const speak = useCallback(async (text: string, opts?: { voiceId?: string }) => {
     setIsPlaying(true);
     setError(null);
     
     try {
       // 1. Try ElevenLabs
-      const audioBase64 = await speakAction({ text });
+      const audioBase64 = await speakAction({ text, voiceId: opts?.voiceId });
       
       const audio = new Audio(`data:audio/mp3;base64,${audioBase64}`);
       
@@ -28,7 +28,7 @@ export function useTTS() {
     } catch (err) {
       console.error("ElevenLabs TTS failed:", err);
       // 2. Fallback to Browser TTS
-      browserSpeak(text);
+      browserSpeak(text, opts);
     } finally {
       setIsPlaying(false);
     }

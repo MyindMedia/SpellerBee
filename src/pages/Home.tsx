@@ -32,6 +32,10 @@ export default function Home() {
   const activeUserId = studentId || childName || "anonymous";
   const navigate = useNavigate();
 
+  // Load user settings to get preferred voice
+  const userSettings = useQuery(anyApi.settings.getSettings);
+  const voiceId = userSettings?.voiceId;
+
   const itemsRaw = useQuery(anyApi.myFunctions.getStudyList, { level, userId: activeUserId });
   const items = useMemo(() => (itemsRaw ?? []) as StudyItem[], [itemsRaw]);
 
@@ -87,8 +91,8 @@ export default function Home() {
   useEffect(() => {
     // Only greet once per session or level change if desired
     // For now, let's just greet on mount
-    void speak(`Welcome back, ${childName}! Let's get spelling!`);
-  }, [childName, speak]); 
+    void speak(`Welcome back, ${childName}! Let's get spelling!`, { voiceId });
+  }, [childName, speak, voiceId]); 
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-[#FFF7CC] via-white to-white">
@@ -111,10 +115,11 @@ export default function Home() {
           <SpellingCard
             item={current}
             remainingCount={remainingCount}
+            voiceId={voiceId}
             onSpeak={() => {
               setTtsError(null);
               // speak function from useTTS hook
-              void speak(current.word);
+              void speak(current.word, { voiceId });
             }}
             onCorrect={() => {
               confetti({

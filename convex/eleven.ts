@@ -17,7 +17,7 @@ const getClient = () => {
 };
 
 export const generateAudio = action({
-  args: { text: v.string() },
+  args: { text: v.string(), voiceId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const apiKey = process.env.ELEVENLABS_API_KEY?.trim();
     if (!apiKey) {
@@ -25,8 +25,8 @@ export const generateAudio = action({
       throw new Error("ELEVENLABS_API_KEY is not set");
     }
     
-    // Voice ID for "Sarah" (teacher-like)
-    const voiceId = "EXAVITQu4vr4xnSDxMaL"; 
+    // Use provided voiceId or default to "Sarah"
+    const voiceId = args.voiceId || "EXAVITQu4vr4xnSDxMaL"; 
 
     try {
       console.log(`Generating audio for text: "${args.text.substring(0, 20)}..." with voice: ${voiceId}`);

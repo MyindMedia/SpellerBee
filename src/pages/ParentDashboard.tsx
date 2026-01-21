@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { anyApi } from "convex/server";
 import { useMutation, useQuery, useAction } from "convex/react";
-import { Plus, Upload, LogOut, Mic, Settings } from "lucide-react";
+import { Plus, Upload, LogOut, Mic, Settings, Check } from "lucide-react";
 import { useClerk, useUser } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import { VOICES } from "@/data/voices";
@@ -20,6 +20,13 @@ export default function ParentDashboard() {
   // Voice Settings
   const userSettings = useQuery(api.settings.getSettings);
   const updateVoice = useMutation(api.settings.updateVoice);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userSettings?.voiceId) {
+        setSelectedVoiceId(userSettings.voiceId);
+    }
+  }, [userSettings]);
 
   const [view, setView] = useState<"students" | "words" | "settings">("students");
   const [showAddStudent, setShowAddStudent] = useState(false);
@@ -58,8 +65,15 @@ export default function ParentDashboard() {
     }
   };
 
-  const handleUpdateVoice = async (voiceId: string) => {
-      await updateVoice({ voiceId });
+  const handleUpdateVoice = (voiceId: string) => {
+      setSelectedVoiceId(voiceId);
+  };
+
+  const handleApplySettings = async () => {
+      if (selectedVoiceId) {
+          await updateVoice({ voiceId: selectedVoiceId });
+          alert("Settings saved!");
+      }
   };
 
 
@@ -263,15 +277,24 @@ export default function ParentDashboard() {
         )}
         {view === "settings" && (
             <div>
-                <h2 className="mb-6 text-lg font-bold text-zinc-800">Tutor Voice</h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-bold text-zinc-800">Tutor Voice</h2>
+                    <button 
+                        onClick={handleApplySettings}
+                        disabled={selectedVoiceId === userSettings?.voiceId}
+                        className="rounded-xl bg-blue-600 px-6 py-2 font-bold text-white shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none"
+                    >
+                        Apply Changes
+                    </button>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                     {VOICES.map((voice) => (
                         <button
                             key={voice.id}
                             onClick={() => handleUpdateVoice(voice.id)}
                             className={`flex items-center justify-between rounded-2xl border p-4 transition ${
-                                userSettings?.voiceId === voice.id 
-                                ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600" 
+                                selectedVoiceId === voice.id 
+                                ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500" 
                                 : "border-zinc-200 bg-white hover:border-blue-300 hover:bg-zinc-50"
                             }`}
                         >
@@ -279,9 +302,9 @@ export default function ParentDashboard() {
                                 <p className="font-bold text-zinc-900">{voice.name}</p>
                                 <p className="text-sm text-zinc-500">{voice.description}</p>
                             </div>
-                            {userSettings?.voiceId === voice.id && (
-                                <div className="rounded-full bg-blue-600 p-1 text-white">
-                                    <Mic className="h-4 w-4" />
+                            {selectedVoiceId === voice.id && (
+                                <div className="rounded-full bg-emerald-500 p-1 text-white shadow-sm">
+                                    <Check className="h-5 w-5" />
                                 </div>
                             )}
                         </button>
