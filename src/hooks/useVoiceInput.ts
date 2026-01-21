@@ -1,19 +1,82 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
+
+// Helper to check browser support
+const isSpeechRecognitionSupported = () => {
+  return "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
+};
 
 export function useVoiceInput() {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
+  const [interimTranscript, setInterimTranscript] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   
+  // MediaRecorder fallback
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  
   const listenAction = useAction(api.eleven.listen);
 
+  // SpeechRecognition
+  const recognitionRef = useRef<any>(null);
+
   const startRecording = useCallback(async () => {
+    setError(null);
+    setTranscript(null);
+    setInterimTranscript("");
+
+    // 1. Try Web Speech API (Real-time)
+    if (isSpeechRecognitionSupported()) {
+        try {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true; // Keep listening even if user pauses slightly
+            recognition.interimResults = true; // Key for "reveal as you say it"
+            recognition.lang = "en-US";
+
+            recognition.onstart = () => {
+                setIsRecording(true);
+            };
+
+            recognition.onerror = (event: any) => {
+                console.error("Speech recognition error", event.error);
+                setError(event.error);
+                setIsRecording(false);
+            };
+
+            recognition.onend = () => {
+                setIsRecording(false);
+            };
+
+            recognition.onresult = (event: any) => {
+                let final = "";
+                let interim = "";
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        final += event.results[i][0].transcript;
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                
+                if (final) {
+                    setTranscript((prev) => (prev || "") + final);
+                }
+                setInterimTranscript(interim);
+            };
+
+            recognitionRef.current = recognition;
+            recognition.start();
+            return;
+        } catch (e) {
+            console.warn("SpeechRecognition failed to start, falling back to MediaRecorder", e);
+        }
+    }
+
+    // 2. Fallback to MediaRecorder (Batch)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
@@ -27,8 +90,6 @@ export function useVoiceInput() {
       
       recorder.start();
       setIsRecording(true);
-      setError(null);
-      setTranscript(null);
     } catch (err) {
       console.error("Error accessing microphone:", err);
       setError("Could not access microphone");
@@ -36,7 +97,28 @@ export function useVoiceInput() {
   }, []);
 
   const stopRecording = useCallback(async () => {
-    if (!mediaRecorderRef.current) return;
+    // Stop Web Speech API
+    if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+        setIsRecording(false);
+        // Combine final transcript + any lingering interim
+        // Actually, onresult handles it. We just return the current state.
+        // Wait, 'transcript' state might not be fully updated immediately?
+        // We return a promise that resolves with the final text.
+        return new Promise<string>((resolve) => {
+            // Give it a tiny moment for final event
+            setTimeout(() => {
+                // Use the state value? State inside callback is stale?
+                // Ref approach is better for getting value inside callback, 
+                // but for now let's rely on the component using the hook to read 'transcript'
+                resolve(transcript + interimTranscript); 
+            }, 100);
+        });
+    }
+
+    // Stop MediaRecorder (Fallback)
+    if (!mediaRecorderRef.current) return null;
     
     return new Promise<string>((resolve, reject) => {
       const recorder = mediaRecorderRef.current!;
@@ -59,7 +141,7 @@ export function useVoiceInput() {
               const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
 
               if (apiKey) {
-                  // Client-side STT to bypass cloud IP block
+                  // Client-side STT
                   const formData = new FormData();
                   formData.append("file", blob, "audio.webm");
                   formData.append("model_id", "scribe_v2");
@@ -100,14 +182,14 @@ export function useVoiceInput() {
       
       recorder.stop();
     });
-  }, [listenAction]);
+  }, [listenAction, transcript, interimTranscript]);
 
   return {
     startRecording,
     stopRecording,
     isRecording,
     isProcessing,
-    transcript,
+    transcript: (transcript || "") + interimTranscript, // Combine final + interim for real-time feel
     error
   };
 }

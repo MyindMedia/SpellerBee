@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
@@ -52,9 +51,31 @@ export default function SpellingCard(props: {
   const { playSuccess, playError, playConfetti } = useSound();
   
   const { speak, isPlaying: isSpeaking } = useTTS();
-  const { startRecording, stopRecording, isRecording, isProcessing } = useVoiceInput();
+  const { startRecording, stopRecording, isRecording, isProcessing, transcript } = useVoiceInput();
 
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto-fill guess from voice transcript
+  useEffect(() => {
+    if (transcript) {
+        // Normalize: remove spaces and non-alpha, lowercase
+        // e.g. "C A T" -> "cat"
+        const clean = transcript.replace(/[^a-zA-Z]/g, "").toLowerCase();
+        setGuess(clean);
+    }
+  }, [transcript]);
+
+  // Handle Auto-Listen Flow
+  const handleSpeakAndListen = async () => {
+    // 1. Speak
+    await speak(props.item.word);
+    
+    // 2. Start Listening immediately after
+    // Only if not already correct and in standard mode
+    if (result !== "correct" && mode === "standard") {
+        void startRecording();
+    }
+  };
 
   const statusChip = useMemo(() => {
     if (props.item.status === "trouble") {
@@ -77,6 +98,11 @@ export default function SpellingCard(props: {
     setResult("idle");
     setShowHint(false);
     
+    // Stop recording if active when word changes
+    if (isRecording) {
+        void stopRecording();
+    }
+    
     // Prepare scramble chars
     const chars = props.item.word.split("").map((c, i) => ({
       id: i,
@@ -96,6 +122,11 @@ export default function SpellingCard(props: {
   }, [props.item._id, props.item.word, mode]);
 
   async function submit() {
+    // If recording, stop it first
+    if (isRecording) {
+        await stopRecording();
+    }
+
     const correct = isCorrectGuess(guess, props.item.word);
     if (correct) {
       setResult("correct");
@@ -118,26 +149,6 @@ export default function SpellingCard(props: {
     setGuess((prev) => prev + char);
     setResult("idle");
   }
-
-  function handleScrambleBackspace() {
-    if (guess.length === 0 || result === "correct") return;
-    
-    const lastChar = guess.slice(-1);
-    setGuess((prev) => prev.slice(0, -1));
-    setResult("idle");
-
-    // Find a used char that matches and un-use it (just the last one added ideally, but simple matching works for now if duplicates exist, we need to be careful)
-    // Actually, to be precise, we should track the stack of IDs added.
-    // For simplicity, let's just find the *first* used char that matches the removed letter.
-    // Wait, tracking stack is better.
-    // Let's rely on the fact that we can just rebuild "used" based on "guess" if we didn't have duplicates, but we do.
-    // Re-implementation: Store `selectedIds` stack.
-  }
-  
-  // Better Scramble Logic:
-  // Instead of complex backspace, just a "Reset" button for scramble is easier for kids.
-  // Or, allow clicking the letter in the *answer* box to remove it.
-  // Let's go with "Clear" button resets everything.
 
   const feedback =
     result === "correct" ? (
@@ -184,12 +195,25 @@ export default function SpellingCard(props: {
           
           <button
             type="button"
-            onClick={props.onSpeak}
-            disabled={isSpeaking}
-            className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#FFD700] px-4 text-sm font-semibold text-zinc-900 shadow-sm transition hover:brightness-95 focus:outline-none focus:ring-4 focus:ring-[#FFD700]/30 disabled:opacity-50"
+            onClick={handleSpeakAndListen}
+            disabled={isSpeaking || isRecording}
+            className={`inline-flex h-11 items-center gap-2 rounded-2xl px-4 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-4 ${
+                isRecording 
+                ? "bg-rose-500 text-white animate-pulse ring-rose-200" 
+                : "bg-[#FFD700] text-zinc-900 hover:brightness-95 ring-[#FFD700]/30"
+            } disabled:opacity-50`}
           >
-            <Volume2 className={`h-4 w-4 ${isSpeaking ? "animate-pulse" : ""}`} />
-            Speak
+            {isRecording ? (
+                <>
+                    <Mic className="h-4 w-4 animate-bounce" />
+                    Listening...
+                </>
+            ) : (
+                <>
+                    <Volume2 className={`h-4 w-4 ${isSpeaking ? "animate-pulse" : ""}`} />
+                    Speak
+                </>
+            )}
           </button>
         </div>
       </div>
@@ -229,35 +253,24 @@ export default function SpellingCard(props: {
                     onKeyDown={(e) => {
                         if (e.key === "Enter") void submit();
                     }}
-                    className="h-14 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-xl text-zinc-900 shadow-sm outline-none transition focus:border-zinc-300 focus:ring-4 focus:ring-[#FFD700]/20 placeholder:text-zinc-300"
-                    placeholder={isRecording ? "Listening..." : isProcessing ? "Thinking..." : "Type here…"}
+                    className={`h-14 w-full rounded-2xl border bg-white px-4 text-xl text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-300 ${
+                        isRecording 
+                        ? "border-rose-400 ring-4 ring-rose-100" 
+                        : "border-zinc-200 focus:border-zinc-300 focus:ring-4 focus:ring-[#FFD700]/20"
+                    }`}
+                    placeholder={isRecording ? "Say the letters..." : isProcessing ? "Thinking..." : "Type here…"}
                     autoComplete="off"
                     spellCheck={false}
-                    disabled={result === "correct" || isRecording || isProcessing}
+                    disabled={result === "correct" || isProcessing}
                     />
+                    {/* Animated Letter Reveal Effect Overlay (Optional, or just rely on input value update) */}
                 </div>
                 
                 <button
                     type="button"
-                    onMouseDown={() => void startRecording()}
-                    onMouseUp={async () => {
-                        const text = await stopRecording();
-                        if (text) {
-                            // Simple cleanup: remove punctuation and whitespace
-                            const clean = text.replace(/[^a-zA-Z]/g, "").toLowerCase();
-                            setGuess(clean);
-                        }
-                    }}
-                    onMouseLeave={() => {
+                    onClick={() => {
                         if (isRecording) void stopRecording();
-                    }}
-                    onTouchStart={() => void startRecording()}
-                    onTouchEnd={async () => {
-                        const text = await stopRecording();
-                        if (text) {
-                             const clean = text.replace(/[^a-zA-Z]/g, "").toLowerCase();
-                             setGuess(clean);
-                        }
+                        else void startRecording();
                     }}
                     disabled={result === "correct" || isProcessing}
                     className={`flex-none h-14 w-14 inline-flex items-center justify-center rounded-2xl transition-all shadow-sm border ${
@@ -265,7 +278,7 @@ export default function SpellingCard(props: {
                         ? "bg-rose-500 border-rose-600 text-white scale-105 shadow-md animate-pulse ring-4 ring-rose-200" 
                         : "bg-white border-zinc-200 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300"
                     }`}
-                    title="Hold to Speak"
+                    title={isRecording ? "Stop Listening" : "Start Listening"}
                 >
                     <Mic className="h-6 w-6" />
                 </button>
