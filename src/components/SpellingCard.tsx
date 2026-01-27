@@ -151,11 +151,45 @@ export default function SpellingCard(props: {
     await props.onMarkTrouble();
   }
 
+  const [spellingOverlay, setSpellingOverlay] = useState<{
+    word: string;
+    currentIndex: number;
+    show: boolean;
+  }>({ word: "", currentIndex: -1, show: false });
+
   const handleSpellOut = async (word: string) => {
-      // Format: "Word. H - O - L - D. Word."
+      // Show overlay
+      setSpellingOverlay({ word, currentIndex: -1, show: true });
+
+      // Start audio
       const letters = word.split("").join(" - ");
       const text = `${word}. ${letters}. ${word}.`;
-      await speak(text, { voiceId: props.voiceId });
+      
+      // Calculate timing roughly (this is approximate without events from backend)
+      // We'll animate visually based on a timer that matches speaking speed
+      const totalDuration = text.length * 80; // Rough ms per char
+      const letterDuration = 600; // ms per letter spoken
+      const initialDelay = 1000; // Time to say first word
+
+      // Start speaking
+      void speak(text, { voiceId: props.voiceId });
+
+      // Animate visual spelling
+      // 1. First word spoken
+      await new Promise(r => setTimeout(r, initialDelay));
+      
+      // 2. Letters spoken
+      for (let i = 0; i < word.length; i++) {
+          setSpellingOverlay(prev => ({ ...prev, currentIndex: i }));
+          await new Promise(r => setTimeout(r, letterDuration));
+      }
+
+      // 3. Final word spoken
+      setSpellingOverlay(prev => ({ ...prev, currentIndex: word.length })); // Show full word
+      await new Promise(r => setTimeout(r, 1000));
+      
+      // Hide after done
+      setSpellingOverlay({ word: "", currentIndex: -1, show: false });
   };
 
   function handleScrambleClick(charId: number) {
@@ -401,6 +435,30 @@ export default function SpellingCard(props: {
           <SkipForward className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Visual Spelling Overlay */}
+      {spellingOverlay.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="flex gap-2">
+                {spellingOverlay.word.split("").map((char, index) => (
+                    <div 
+                        key={index}
+                        className={`
+                            flex h-20 w-16 items-center justify-center rounded-2xl text-4xl font-black shadow-lg transition-all duration-300
+                            ${index === spellingOverlay.currentIndex 
+                                ? "scale-125 bg-amber-400 text-white ring-4 ring-amber-200 -translate-y-4" 
+                                : index < spellingOverlay.currentIndex || spellingOverlay.currentIndex === spellingOverlay.word.length
+                                    ? "bg-white text-zinc-900 opacity-100"
+                                    : "bg-white/10 text-white/20 opacity-50"
+                            }
+                        `}
+                    >
+                        {char}
+                    </div>
+                ))}
+            </div>
+        </div>
+      )}
     </div>
   );
 }
