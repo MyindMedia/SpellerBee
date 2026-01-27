@@ -82,6 +82,7 @@ export function useVoiceInput() {
 
     // 2. Fallback to MediaRecorder (Batch)
     try {
+      // Explicitly request audio permissions if not granted
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       
@@ -96,7 +97,14 @@ export function useVoiceInput() {
       setIsRecording(true);
     } catch (err) {
       console.error("Error accessing microphone:", err);
-      setError("Could not access microphone");
+      // More descriptive error
+      if (err instanceof DOMException && err.name === "NotAllowedError") {
+          setError("Microphone permission denied. Please allow access in browser settings.");
+      } else if (err instanceof DOMException && err.name === "NotFoundError") {
+          setError("No microphone found.");
+      } else {
+          setError("Could not access microphone.");
+      }
     }
   }, []);
 

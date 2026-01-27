@@ -93,11 +93,14 @@ export default function SpellingCard(props: {
     );
   }, [props.item.status]);
 
+  const [failedAttempts, setFailedAttempts] = useState(0);
+
   // Reset state when word changes
   useEffect(() => {
     setGuess("");
     setResult("idle");
     setShowHint(false);
+    setFailedAttempts(0);
     
     // Stop recording if active when word changes
     if (isRecording) {
@@ -136,6 +139,7 @@ export default function SpellingCard(props: {
       return;
     }
     setResult("incorrect");
+    setFailedAttempts(prev => prev + 1);
     playError();
     await props.onMarkTrouble();
   }
@@ -158,9 +162,16 @@ export default function SpellingCard(props: {
         Correct! 🎉
       </div>
     ) : result === "incorrect" ? (
-      <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-rose-700">
-        <X className="h-4 w-4" />
-        Try again.
+      <div className="flex flex-col gap-2">
+        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-rose-700">
+            <X className="h-4 w-4" />
+            Try again.
+        </div>
+        {failedAttempts >= 2 && (
+             <div className="rounded-xl bg-amber-50 p-3 text-center text-sm font-bold text-amber-800 ring-1 ring-amber-200 animate-in fade-in slide-in-from-top-2">
+                The correct spelling is: <span className="text-lg uppercase tracking-widest">{props.item.word}</span>
+            </div>
+        )}
       </div>
     ) : (
       <div className="mt-3 text-sm text-zinc-600">
@@ -203,6 +214,7 @@ export default function SpellingCard(props: {
                 ? "bg-rose-500 text-white animate-pulse ring-rose-200" 
                 : "bg-[#FFD700] text-zinc-900 hover:brightness-95 ring-[#FFD700]/30"
             } disabled:opacity-50`}
+            title={isRecording ? "Listening..." : "Hear word & Speak"}
           >
             {isRecording ? (
                 <>
@@ -228,12 +240,15 @@ export default function SpellingCard(props: {
                 {!showHint ? (
                     <button 
                         onClick={() => setShowHint(true)}
-                        className="text-xs font-medium text-blue-600 flex items-center gap-1 hover:underline"
+                        // Only show hint button if 2 failed attempts
+                        disabled={failedAttempts < 2}
+                        className={`text-xs font-medium flex items-center gap-1 ${failedAttempts < 2 ? "text-zinc-300 cursor-not-allowed" : "text-blue-600 hover:underline"}`}
+                        title={failedAttempts < 2 ? "Hint unlocks after 2 incorrect tries" : "Show Hint"}
                     >
-                        <Lightbulb className="w-3 h-3" /> Show Hint Sentence
+                        <Lightbulb className="w-3 h-3" /> Show Hint Sentence {failedAttempts < 2 && "(Locked)"}
                     </button>
                 ) : (
-                    <div className="p-4 bg-blue-50 rounded-2xl text-blue-900 text-lg font-medium text-center">
+                    <div className="p-4 bg-blue-50 rounded-2xl text-blue-900 text-lg font-medium text-center animate-in fade-in zoom-in">
                         {props.item.sentence.replace("___", "_______")}
                     </div>
                 )}
@@ -261,6 +276,8 @@ export default function SpellingCard(props: {
                     }`}
                     placeholder={isRecording ? "Say the letters..." : isProcessing ? "Thinking..." : "Type here…"}
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
                     spellCheck={false}
                     disabled={result === "correct" || isProcessing}
                     />
