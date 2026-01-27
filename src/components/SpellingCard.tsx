@@ -139,10 +139,24 @@ export default function SpellingCard(props: {
       return;
     }
     setResult("incorrect");
-    setFailedAttempts(prev => prev + 1);
+    setFailedAttempts(prev => {
+        const newVal = prev + 1;
+        // Trigger spell-out on 2nd failure (which is when newVal === 2)
+        if (newVal === 2) {
+            void handleSpellOut(props.item.word);
+        }
+        return newVal;
+    });
     playError();
     await props.onMarkTrouble();
   }
+
+  const handleSpellOut = async (word: string) => {
+      // Format: "Word. H - O - L - D. Word."
+      const letters = word.split("").join(" - ");
+      const text = `${word}. ${letters}. ${word}.`;
+      await speak(text, { voiceId: props.voiceId });
+  };
 
   function handleScrambleClick(charId: number) {
     if (result === "correct") return;
