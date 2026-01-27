@@ -161,32 +161,35 @@ export default function SpellingCard(props: {
       // Show overlay
       setSpellingOverlay({ word, currentIndex: -1, show: true });
 
-      // Start audio
-      const letters = word.split("").join(" - ");
-      const text = `${word}. ${letters}. ${word}.`;
+      // Start audio with pauses
+      // <break time="2.0s" /> is SSML but ElevenLabs supports simple text pauses better via punctuation
+      // We will split the playback into 3 chunks to ensure perfect timing control
       
-      // Calculate timing roughly (this is approximate without events from backend)
-      // We'll animate visually based on a timer that matches speaking speed
-      const totalDuration = text.length * 80; // Rough ms per char
-      const letterDuration = 600; // ms per letter spoken
-      const initialDelay = 1000; // Time to say first word
-
-      // Start speaking
-      void speak(text, { voiceId: props.voiceId });
-
-      // Animate visual spelling
-      // 1. First word spoken
-      await new Promise(r => setTimeout(r, initialDelay));
+      const letters = word.split("").join("... "); // "..." adds natural pause
       
-      // 2. Letters spoken
+      // 1. Say word first
+      await speak(word, { voiceId: props.voiceId });
+      
+      // Wait 2 seconds
+      await new Promise(r => setTimeout(r, 2000));
+      
+      // 2. Spell it out (Letter by letter sync)
+      // We'll say each letter individually to perfectly sync visual highlight
       for (let i = 0; i < word.length; i++) {
           setSpellingOverlay(prev => ({ ...prev, currentIndex: i }));
-          await new Promise(r => setTimeout(r, letterDuration));
+          await speak(word[i], { voiceId: props.voiceId });
+          await new Promise(r => setTimeout(r, 800)); // 1s delay between letters (minus some processing time)
       }
-
-      // 3. Final word spoken
+      
+      // Wait 1 second before final word
       setSpellingOverlay(prev => ({ ...prev, currentIndex: word.length })); // Show full word
       await new Promise(r => setTimeout(r, 1000));
+
+      // 3. Say word again
+      await speak(word, { voiceId: props.voiceId });
+      
+      // Wait 2 seconds before closing
+      await new Promise(r => setTimeout(r, 2000));
       
       // Hide after done
       setSpellingOverlay({ word: "", currentIndex: -1, show: false });
