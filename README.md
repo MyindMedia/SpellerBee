@@ -55,3 +55,7 @@ export default tseslint.config({
   },
 })
 ```
+
+## AI Code Review
+
+This repository is configured with CodeRabbit for automated AI code reviews.
